@@ -646,14 +646,15 @@ int stk_subseq(int argc, char *argv[])
 	khash_t(reg) *h = kh_init(reg);
 	gzFile fp;
 	kseq_t *seq;
-	int l, i, j, c, is_tab = 0, line = 0, do_strand = 0;
+	int l, i, j, c, is_tab = 0, line = 0, do_strand = 0, invert = 0;
 	char *seq_buf = 0;
 	uint32_t seq_max = 0;
 	khint_t k;
-	while ((c = getopt(argc, argv, "tl:s")) >= 0) {
+	while ((c = getopt(argc, argv, "tl:sv")) >= 0) {
 		switch (c) {
 		case 't': is_tab = 1; break;
 		case 's': do_strand = 1; break;
+		case 'v': invert = 1; break;
 		case 'l': line = atoi(optarg); break;
 		}
 	}
@@ -662,6 +663,7 @@ int stk_subseq(int argc, char *argv[])
 		fprintf(stderr, "Options:\n");
 		fprintf(stderr, "  -t       TAB delimited output\n");
 		fprintf(stderr, "  -s       strand aware\n");
+		fprintf(stderr, "  -v       remove seq with name in name.list, and exclude other options\n");
 		fprintf(stderr, "  -l INT   sequence line length [%d]\n", line);
 		fprintf(stderr, "Note: Use 'samtools faidx' if only a few regions are intended.\n");
 		return 1;
@@ -679,10 +681,21 @@ int stk_subseq(int argc, char *argv[])
 		return 1;
 	}
 	seq = kseq_init(fp);
-	while ((l = kseq_read(seq)) >= 0) {
+	while ((l = kseq_read(seq)) >= 0) {  // get single fasta/fastq record
 		reglist_t *p;
 		k = kh_get(reg, h, seq->name.s);
-		if (k == kh_end(h)) continue;
+		if (k == kh_end(h)) {
+			if (invert) {
+				printf("%c%s", seq->qual.l == seq->seq.l? '@' : '>', seq->name.s);
+				if (seq->comment.l) printf(" %s", seq->comment.s);
+				putchar('\n');
+				printf(seq->seq.s);
+				printf("\n+\n");
+				printf(seq->qual.s);
+				putchar('\n');
+			} else continue;
+		} else if (invert) continue;
+
 		p = &kh_val(h, k);
 		for (i = 0; i < p->n; ++i) {
 			int beg = p->a[i]>>32, end = p->a[i];
