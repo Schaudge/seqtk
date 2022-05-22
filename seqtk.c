@@ -663,7 +663,7 @@ int stk_subseq(int argc, char *argv[])
 		fprintf(stderr, "Options:\n");
 		fprintf(stderr, "  -t       TAB delimited output\n");
 		fprintf(stderr, "  -s       strand aware\n");
-		fprintf(stderr, "  -v       remove seq with name in name.list, and exclude other options\n");
+		fprintf(stderr, "  -v       remove seq with name in name.list, and exclude other options (current)\n");
 		fprintf(stderr, "  -l INT   sequence line length [%d]\n", line);
 		fprintf(stderr, "Note: Use 'samtools faidx' if only a few regions are intended.\n");
 		return 1;
@@ -689,10 +689,10 @@ int stk_subseq(int argc, char *argv[])
 				printf("%c%s", seq->qual.l == seq->seq.l? '@' : '>', seq->name.s);
 				if (seq->comment.l) printf(" %s", seq->comment.s);
 				putchar('\n');
-				printf(seq->seq.s);
-				printf("\n+\n");
-				printf(seq->qual.s);
-				putchar('\n');
+				printf("%s%c", seq->seq.s, '\n');
+				if (seq->qual.l == seq->seq.l) {
+					printf("%s%s%c", "+\n", seq->qual.s, '\n');
+				}
 			} else continue;
 		} else if (invert) continue;
 
